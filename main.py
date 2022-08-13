@@ -137,15 +137,15 @@ class Yolov3:
             if i in indexes:
                 label = str(self.classes[class_ids[i]])
                 if label == "sports_ball":  # bola
-                    x_person, y_person, w_person, h_person = boxes[i]
+                    x_ball, y_ball, w_ball, h_ball = boxes[i]
                     color = self.colors[class_ids[i]]
 
-                    cv2.rectangle(frame, (x_person, y_person),
-                                  (x_person + w_person, y_person + w_person),
+                    cv2.rectangle(frame, (x_ball, y_ball),
+                                  (x_ball + w_ball, y_ball + w_ball),
                                   color, 2)
 
                     tl = round(0.002 * (frame.shape[0] + frame.shape[1]) / 2) + 1  # line/font thickness
-                    c1, c2 = (int(x_person), int(y_person)), (int(w_person), int(h_person))
+                    c1, c2 = (int(x_ball), int(y_ball)), (int(w_ball), int(h_ball))
 
                     if label:
                         tf = max(tl - 1, 1)  # font thickness
@@ -158,13 +158,13 @@ class Yolov3:
                                     tl / 3, [225, 255, 255],
                                     thickness=tf, lineType=cv2.LINE_AA)
 
-                        cv2.circle(frame, (int(x_person + int(w_person / 2)),
-                                           int(y_person + int(h_person / 2))), 4, color, -1)
+                        cv2.circle(frame, (int(x_ball + int(w_ball / 2)),
+                                           int(y_ball + int(h_ball / 2))), 4, color, -1)
 
-                        cv2.putText(frame, str(int(x_person + int(w_person / 2))) + ", " + str(
-                            int(y_person + int(h_person / 2))),
-                                    (int(x_person + int(w_person / 2) + 10),
-                                     int(y_person + int(h_person / 2) + 10)),
+                        cv2.putText(frame, str(int(x_ball + int(w_ball / 2))) + ", " + str(
+                            int(y_ball + int(h_ball / 2))),
+                                    (int(x_ball + int(w_ball / 2) + 10),
+                                     int(y_ball + int(h_ball / 2) + 10)),
                                     font, tl / 2, [255, 255, 255], thickness=tf,
                                     lineType=cv2.LINE_AA)
 
