@@ -19,7 +19,8 @@ import numpy as np
 import cv2
 import time
 
-import roslib
+
+# import roslib
 
 
 class Yolov3:
@@ -94,14 +95,60 @@ class Yolov3:
                     confidences.append(float(confidence))
                     class_ids.append(class_id)
 
+    def giveLabels(self,
+                   _frame=None,
+                   _labels=None,
+                   _indexes=None,
+                   _font=None,
+                   _boxes=None,
+                   _class_ids=None,
+                   _confidences=None):
+
+        for i in range(len(_boxes)):
+            if i in _indexes:
+                label = str(self.classes[_class_ids[i]])
+                if label == _labels:  # bola
+                    x_item, y_item, w_item, h_item = _boxes[i]
+
+                    color = self.colors[_class_ids[i]]
+                    cv2.rectangle(_frame,
+                                  (x_item, y_item),
+                                  (x_item + w_item, y_item + w_item),
+                                  color, 2)
+
+                    tl = round(0.002 * (_frame.shape[0] + _frame.shape[1]) / 2) + 1  # line/font thickness
+                    c1, c2 = (int(x_item), int(y_item)), (int(w_item), int(h_item))
+
+                    if label:
+                        tf = max(tl - 1, 1)  # font thickness
+                        t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
+                        c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
+
+                        cv2.rectangle(_frame, c1, c2, color, -1, cv2.LINE_AA)  # filled
+                        cv2.putText(_frame, label + " " + str(int(_confidences[i] * 100)) + "%",
+                                    (c1[0], c1[1] - 2), 0,
+                                    tl / 3, [225, 255, 255],
+                                    thickness=tf, lineType=cv2.LINE_AA)
+
+                        cv2.circle(_frame, (int(x_item + int(w_item / 2)),
+                                            int(y_item + int(h_item / 2))), 4, color, -1)
+
+                        cv2.putText(_frame, str(int(x_item + int(w_item / 2))) + ", " + str(
+                            int(y_item + int(h_item / 2))),
+                                    (int(x_item + int(w_item / 2) + 10),
+                                     int(y_item + int(h_item / 2) + 10)),
+                                    _font, tl / 2, [255, 255, 255], thickness=tf,
+                                    lineType=cv2.LINE_AA)
+        return _frame
+
     def callback_image(self, data):
-        global frame
+        frame = [[[]]]
         try:
             frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
 
-        frame = self.image_resize(image=frame, width=640)
+        frame = self.image_resize(image=frame, width=450)
         height, width, channels = frame.shape
 
         self._new_time = time.time()
@@ -133,43 +180,65 @@ class Yolov3:
         indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
         font = cv2.FONT_HERSHEY_PLAIN
 
-        for i in range(len(boxes)):
-            if i in indexes:
-                label = str(self.classes[class_ids[i]])
-                if label == "sports_ball":  # bola
-                    x_ball, y_ball, w_ball, h_ball = boxes[i]
-                    color = self.colors[class_ids[i]]
+        frame_bola = self.giveLabels(_frame=frame,
+                                     _labels="sports_ball",
+                                     _indexes=indexes,
+                                     _font=font,
+                                     _boxes=boxes,
+                                     _class_ids=class_ids,
+                                     _confidences=confidences)
 
-                    cv2.rectangle(frame, (x_ball, y_ball),
-                                  (x_ball + w_ball, y_ball + w_ball),
-                                  color, 2)
+        # frame_gawang = self.giveLabels(_frame=frame,
+        #                                _labels="goals",
+        #                                _indexes=indexes,
+        #                                _font=font,
+        #                                _boxes=boxes,
+        #                                _class_ids=class_ids,
+        #                                _confidences=confidences)
 
-                    tl = round(0.002 * (frame.shape[0] + frame.shape[1]) / 2) + 1  # line/font thickness
-                    c1, c2 = (int(x_ball), int(y_ball)), (int(w_ball), int(h_ball))
-
-                    if label:
-                        tf = max(tl - 1, 1)  # font thickness
-                        t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
-                        c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
-
-                        cv2.rectangle(frame, c1, c2, color, -1, cv2.LINE_AA)  # filled
-                        cv2.putText(frame, label + " " + str(int(confidences[i] * 100)) + "%",
-                                    (c1[0], c1[1] - 2), 0,
-                                    tl / 3, [225, 255, 255],
-                                    thickness=tf, lineType=cv2.LINE_AA)
-
-                        cv2.circle(frame, (int(x_ball + int(w_ball / 2)),
-                                           int(y_ball + int(h_ball / 2))), 4, color, -1)
-
-                        cv2.putText(frame, str(int(x_ball + int(w_ball / 2))) + ", " + str(
-                            int(y_ball + int(h_ball / 2))),
-                                    (int(x_ball + int(w_ball / 2) + 10),
-                                     int(y_ball + int(h_ball / 2) + 10)),
-                                    font, tl / 2, [255, 255, 255], thickness=tf,
-                                    lineType=cv2.LINE_AA)
-
-        cv2.imshow("main frame", frame)
+        cv2.imshow("frame_bola", frame_bola)
+        # cv2.imshow("frame_gawang", frame_gawang)
         cv2.waitKey(1)
+
+
+class RosHandler:
+    _kf_FocalCamera = 347.10111738231086
+    _kf_BallWidth = 14.6
+
+    def __init__(self, _x_pos, _y_pos, _w_box, _h_box,
+                 _width_frame, _height_frame):
+        self._x_position = _x_pos
+        self._y_position = _y_pos
+        self._w_box = _w_box
+        self._h_box = _h_box
+        self._width_frame = _width_frame
+        self._height_frame = _height_frame
+
+    def getXfilter(self):
+        return (self._x_position / self._width_frame) * 2 - 1
+
+    def getYFilter(self):
+        return (self._y_position / self._height_frame) * 2 - 1
+
+    def sendBallPosition(self):
+        pass
+
+    def sendGoalsPosition(self):
+        pass
+
+    def sendBallState(self):
+        pass
+
+    def sendGoalsState(self):
+        pass
+
+    def getDistance(self):
+        return (self._kf_BallWidth * self._kf_FocalCamera) / (
+                (self._w_box + self._h_box) / 2)
+
+    def getFocal(self):
+        return self._kf_BallWidth * ((self._w_box + self._h_box)
+                                     / 2) / 64.2  # real obj dist
 
 
 if __name__ == "__main__":
