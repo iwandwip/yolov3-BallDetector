@@ -104,6 +104,8 @@ class Yolov3:
                    _class_ids=None,
                    _confidences=None):
 
+        x_item, y_item, w_item, h_item = 0, 0, 0, 0
+
         for i in range(len(_boxes)):
             if i in _indexes:
                 label = str(self.classes[_class_ids[i]])
@@ -139,7 +141,8 @@ class Yolov3:
                                      int(y_item + int(h_item / 2) + 10)),
                                     _font, tl / 2, [255, 255, 255], thickness=tf,
                                     lineType=cv2.LINE_AA)
-        return _frame
+
+        return _frame, x_item, y_item, w_item, h_item
 
     def callback_image(self, data):
         frame = [[[]]]
@@ -180,13 +183,14 @@ class Yolov3:
         indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
         font = cv2.FONT_HERSHEY_PLAIN
 
-        frame_bola = self.giveLabels(_frame=frame,
-                                     _labels="sports_ball",
-                                     _indexes=indexes,
-                                     _font=font,
-                                     _boxes=boxes,
-                                     _class_ids=class_ids,
-                                     _confidences=confidences)
+        frame_bola, x_ball, y_ball, w_ball, h_ball = self.giveLabels(
+            _frame=frame,
+            _labels="sports_ball",
+            _indexes=indexes,
+            _font=font,
+            _boxes=boxes,
+            _class_ids=class_ids,
+            _confidences=confidences)
 
         # frame_gawang = self.giveLabels(_frame=frame,
         #                                _labels="goals",
@@ -205,7 +209,9 @@ class RosHandler:
     _kf_FocalCamera = 347.10111738231086
     _kf_BallWidth = 14.6
 
-    def __init__(self, _x_pos, _y_pos, _w_box, _h_box,
+    def __init__(self,
+                 _x_pos, _y_pos,
+                 _w_box, _h_box,
                  _width_frame, _height_frame):
         self._x_position = _x_pos
         self._y_position = _y_pos
@@ -215,10 +221,12 @@ class RosHandler:
         self._height_frame = _height_frame
 
     def getXfilter(self):
-        return (self._x_position / self._width_frame) * 2 - 1
+        return (self._x_position /
+                self._width_frame) * 2 - 1
 
     def getYFilter(self):
-        return (self._y_position / self._height_frame) * 2 - 1
+        return (self._y_position /
+                self._height_frame) * 2 - 1
 
     def sendBallPosition(self):
         pass
@@ -237,8 +245,8 @@ class RosHandler:
                 (self._w_box + self._h_box) / 2)
 
     def getFocal(self):
-        return self._kf_BallWidth * ((self._w_box + self._h_box)
-                                     / 2) / 64.2  # real obj dist
+        return self._kf_BallWidth * (
+                (self._w_box + self._h_box) / 2) / 64.2  # real obj dist
 
 
 if __name__ == "__main__":
